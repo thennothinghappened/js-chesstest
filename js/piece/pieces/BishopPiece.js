@@ -1,6 +1,7 @@
 
 import { Piece } from '../Piece.js';
 import { Vec2 } from '../../util/math/Vec2.js';
+import { pieceDirectedMovement } from '../behaviours/pieceDirectedMovement.js';
 
 export class BishopPiece extends Piece {
 
@@ -24,30 +25,8 @@ export class BishopPiece extends Piece {
      */
     getAvailableMoves(getPiece, pos) {
 
-        /** @type {Array<Vec2>} */
-        const moves = [];
         const dirs = [new Vec2(-1, -1), new Vec2(1, -1), new Vec2(1, 1), new Vec2(-1, 1)];
-
-        dirs.forEach(dir => {
-            
-            let offset = pos;
-
-            while (true) {
-                offset = offset.plus(dir);
-                const piece = getPiece(offset);
-
-                if (piece !== null) {
-                    if (piece instanceof Piece && piece.side !== this.side) {
-                        moves.push(offset);
-                    }
-
-                    break;
-                }
-
-                moves.push(offset);
-            }
-
-        });
+        const moves = pieceDirectedMovement(this, getPiece, pos, dirs);
 
         return moves;
 
