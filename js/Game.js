@@ -5,15 +5,164 @@ import { PawnPiece } from '/js/pieces/PawnPiece.js';
 import { RookPiece } from '/js/pieces/RookPiece.js';
 
 
-/** @typedef {'none'|'piece_selected'} GameState */
+/** @typedef {'init'|'none'|'piece_selected'} GameState */
+
+/**
+ * @typedef GameStateHandler
+ * @prop {() => void} enter
+ * @prop {() => GameState} update
+ * @prop {() => void} exit
+ * @prop {() => void} draw
+ */
 
 export class Game {
 
-    /** @type {GameState} */
-    gameState = 'none';
+    /** @type {HTMLCanvasElement} */
+    canvas;
 
-    /** @type {Vec2|undefined} */
-    selectedBoardPos = undefined;
+    /** @type {CanvasRenderingContext2D} */
+    ctx;
+
+    /** @type {GameState} */
+    gameState = 'init';
+
+    mouseX = 0;
+    mouseY = 0;
+
+    mouseJustPressed = false;
+    mouseJustReleased = false;
+    mouseDown = false;
+
+    /** @type {Vec2?} */
+    selectedPiecePos = null;
+
+    /** @type { { [key in GameState]: GameStateHandler } } */
+    stateHandlers = {
+        init: {
+            enter: () => {
+
+                this.board[1] = this.board[1].map(() => new PawnPiece('black'));
+                this.board[6] = this.board[6].map(() => new PawnPiece('white'));
+                
+                this.board[0] = [new RookPiece('black'), null, null, null, null, null, null, new RookPiece('black')];
+
+            },
+            update: () => {
+                return 'none';
+            },
+            exit: () => {
+                
+            },
+            draw: () => {
+
+            }
+        },
+        none: {
+            enter: () => {
+
+            },
+            update: () => {
+
+                if (!this.mouseJustPressed) {
+                    return 'none';
+                }
+
+                const mouseBoardPos = this.canvasCoordToGrid(this.mouseX, this.mouseY);
+                const mouseBoardPiece = this.getPiece(mouseBoardPos);
+
+                if (!(mouseBoardPiece instanceof Piece)) {
+                    return 'none';
+                }
+
+                this.selectedPiecePos = mouseBoardPos;
+
+                return 'piece_selected';
+                
+            },
+            exit: () => {
+
+            },
+            draw: () => {
+                this.drawClear();
+                this.drawBoard();
+            }
+        },
+        piece_selected: {
+            enter: () => {
+
+            },
+            update: () => {
+
+                if (!this.mouseJustPressed) {
+                    return 'piece_selected';
+                }
+
+                if (this.selectedPiecePos === null) {
+                    throw 'Invalid state! No piece position selected.';
+                }
+
+                const selectedPiece = this.getPiece(this.selectedPiecePos);
+
+                if (!(selectedPiece instanceof Piece)) {
+                    throw `Invalid state! Expected piece at position ${this.selectedPiecePos}, found ${selectedPiece}`;
+                }
+
+                const mouseBoardPos = this.canvasCoordToGrid(this.mouseX, this.mouseY);
+
+                const moves = selectedPiece.getAvailableMoves(this.getPiece, this.selectedPiecePos);
+                const move = moves.find((m) => mouseBoardPos.equals(m));
+                
+                if (move === undefined) {
+                    return 'none';
+                }
+
+                this.movePiece(this.selectedPiecePos, move);
+                return 'none';
+
+            },
+            exit: () => {
+                this.selectedPiecePos = null;
+            },
+            draw: () => {
+
+                const selectedColour = 'rgba(225, 140, 130, 0.6)';
+                const movePosColour = 'rgba(180, 250, 180, 0.6)';
+
+                if (this.selectedPiecePos === null) {
+                    throw 'Invalid state! No piece position selected.';
+                }
+
+                const selectedPiece = this.getPiece(this.selectedPiecePos);
+
+                if (!(selectedPiece instanceof Piece)) {
+                    throw `Invalid state! Expected piece at position ${this.selectedPiecePos}, found ${selectedPiece}`;
+                }
+                
+                this.drawClear();
+                this.drawBoard();
+                
+                const startX = this.selectedPiecePos.x * this.drawnBoxWidth;
+                const startY = this.selectedPiecePos.y * this.drawnBoxHeight;
+    
+                this.ctx.fillStyle = selectedColour;
+                this.ctx.fillRect(startX, startY, this.drawnBoxWidth, this.drawnBoxHeight);
+    
+                const moves = selectedPiece.getAvailableMoves(this.getPiece, this.selectedPiecePos);
+    
+                this.ctx.fillStyle = movePosColour;
+    
+                moves.forEach((pos) => {
+    
+                    const startX = pos.x * this.drawnBoxWidth;
+                    const startY = pos.y * this.drawnBoxHeight;
+    
+                    this.ctx.fillRect(startX, startY, this.drawnBoxHeight, this.drawnBoxWidth);
+    
+                });
+        
+            }
+        }
+    };
 
     constructor() {
 
@@ -27,7 +176,7 @@ export class Game {
         this.canvas.width = 512;
         this.canvas.height = 512;
 
-        /** @type {Array<Array<Piece|undefined>>} */
+        /** @type {Array<Array<Piece?>>} */
         this.board = Array(this.rows)
             .fill(undefined)
             .map(_ => Array(this.columns).fill(null));
@@ -35,135 +184,96 @@ export class Game {
         /** @type {Array<Piece>} */
         this.outPieces = [];
 
-        this.canvas.addEventListener('click', this.onClickBoard.bind(this));
+        this.canvas.addEventListener('mousedown', this.onMouseDown);
+        this.canvas.addEventListener('mouseup', this.onMouseUp);
+        this.canvas.addEventListener('mousemove', this.onMouseMove);
+
+        this.stateHandlers[this.gameState].enter();
 
     }
 
-    setupBoard() {
+    update = () => {
 
-        this.board[1] = this.board[1].map(_ => new PawnPiece('black'));
-        this.board[6] = this.board[6].map(_ => new PawnPiece('white'));
-        
-        this.board[0] = [new RookPiece('black'), null, null, null, null, null, null, new RookPiece('black')];
+        const handler = this.stateHandlers[this.gameState];
+
+        handler.draw();
+        const nextState = handler.update();
+
+        if (nextState !== this.gameState) {
+
+            console.debug(`Switching state: ${this.gameState} -> ${nextState}`);
+            
+            const nextHandler = this.stateHandlers[nextState];
+
+            handler.exit();
+            nextHandler.enter();
+
+            this.gameState = nextState;
+        }
+
+        requestAnimationFrame(this.update);
 
     }
 
     /**
      * @param {MouseEvent} ev
      */
-    onClickBoard(ev) {
+    onMouseDown = (ev) => {
 
-        const mouseBoardPos = this.canvasCoordToGrid(ev.clientX, ev.clientY);
-        const mouseBoardPiece = this.getPiece(mouseBoardPos);
-
-        switch (this.gameState) {
-
-            case 'none': {
-
-                this.setSelectedBoardPos(mouseBoardPos);
-
-                if (mouseBoardPiece !== null) {
-                    this.onStateChange('piece_selected');
-                }
-
-                return;
-            }
-
-            case 'piece_selected': {
-
-                const selectedPiece = this.getSelectedPiece();
-
-                if (selectedPiece === null) {
-                    throw `Expected to find piece at ${this.selectedBoardPos}, found none!`;
-                }
-
-                const moves = selectedPiece.getAvailableMoves(this.getPiece.bind(this), this.selectedBoardPos);
-                const move = moves.find((m) => mouseBoardPos.equals(m));
-
-                if (move === undefined) {
-                    this.onStateChange('none');
-                    return;
-                }
-
-                this.movePiece(this.selectedBoardPos, move);
-                this.onStateChange('none');
-
-                return;
-            }
-
-        }
+        this.mouseDown = true;
+        this.mouseJustPressed = true;
+        this.update();
+        this.mouseJustPressed = false;
 
     }
 
     /**
-     * @param {GameState} newState 
+     * @param {MouseEvent} ev
      */
-    onStateChange(newState) {
+    onMouseUp = (ev) => {
 
-        // Leave event
-        switch (this.gameState) {
+        this.mouseDown = false;
+        this.mouseJustReleased = true;
+        this.update();
+        this.mouseJustReleased = false;
 
-            case 'none': {
-                break;
-            }
-
-            case 'piece_selected': {
-
-                this.setSelectedBoardPos(undefined);
-
-                break;
-
-            }
-
-        }
-
-        // Enter event
-        switch (newState) {
-                
-            case 'none': {
-                
-                break;
-
-            }
-
-            case 'piece_selected': {
-
-                break;
-
-            }
-
-        }
-
-        this.gameState = newState;
-        this.draw();
     }
 
-    draw() {
+    /**
+     * @param {MouseEvent} ev
+     */
+    onMouseMove = (ev) => {
+
+        const boundingRect = this.canvas.getBoundingClientRect();
+
+        this.mouseX = ev.clientX - boundingRect.left;
+        this.mouseY = ev.clientY - boundingRect.top;
+
+    }
+
+    drawClear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    drawBoard() {
 
         const lightColour = '#afacab';
         const darkColour = '#5f5c5b';
-        const selectedColour = 'rgba(225, 140, 130, 0.6)';
-        const movePosColour = 'rgba(180, 250, 180, 0.6)';
-
-        const boxWidth = this.canvas.width / this.columns;
-        const boxHeight = this.canvas.height / this.rows;
-
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.board.forEach((row, rowIndex) => {
 
-            const startY = rowIndex * boxHeight;
-            const endY = startY + boxHeight;
+            const startY = rowIndex * this.drawnBoxHeight;
+            const endY = startY + this.drawnBoxHeight;
 
             row.forEach((piece, colIndex) => {
 
-                const startX = colIndex * boxWidth;
-                const endX = startX + boxWidth;
+                const startX = colIndex * this.drawnBoxWidth;
+                const endX = startX + this.drawnBoxWidth;
 
                 this.ctx.fillStyle = ((colIndex + rowIndex) % 2 === 0) ? lightColour : darkColour;
-                this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
+                this.ctx.fillRect(startX, startY, this.drawnBoxWidth, this.drawnBoxHeight);
 
-                if (piece === null) {
+                if (!(piece instanceof Piece)) {
                     return;
                 }
 
@@ -174,38 +284,21 @@ export class Game {
 
         });
 
-        const selectedPiece = this.getSelectedPiece();
+    }
 
-        if (selectedPiece !== null) {
+    get drawnBoxWidth() {
+        return this.canvas.width / this.columns;
+    }
 
-            const startX = this.selectedBoardPos.x * boxWidth;
-            const startY = this.selectedBoardPos.y * boxHeight;
-
-            this.ctx.fillStyle = selectedColour;
-            this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
-
-            const moves = selectedPiece.getAvailableMoves(this.getPiece.bind(this), this.selectedBoardPos);
-
-            this.ctx.fillStyle = movePosColour;
-
-            moves.forEach((pos) => {
-
-                const startX = pos.x * boxWidth;
-                const startY = pos.y * boxHeight;
-
-                this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
-
-            });
-
-        }
-
+    get drawnBoxHeight() {
+        return this.canvas.height / this.rows;
     }
 
     /**
      * @param {Vec2} pos
      * @returns {Piece|null|undefined}
      */
-    getPiece = function(pos) {
+    getPiece = (pos) => {
 
         if (pos.x < 0 || pos.y < 0 || pos.x >= this.columns || pos.y >= this.rows) {
             return undefined;
@@ -215,20 +308,18 @@ export class Game {
 
     }
 
-    getSelectedPiece() {
+    /**
+     * @param {Vec2} pos
+     * @param {Piece|null} piece
+     */
+    setPiece = (pos, piece) => {
 
-        if (this.selectedBoardPos === undefined) {
-            return null;
+        if (pos.x < 0 || pos.y < 0 || pos.x >= this.columns || pos.y >= this.rows) {
+            throw `Unable to set piece at position ${pos}!`;
         }
 
-        return this.getPiece(this.selectedBoardPos);
-    }
+        this.board[pos.y][pos.x] = piece;
 
-    /**
-     * @param {Vec2|undefined} pos 
-     */
-    setSelectedBoardPos(pos) {
-        this.selectedBoardPos = pos;
     }
 
     /**
@@ -248,12 +339,16 @@ export class Game {
         const movingPiece = this.getPiece(oldPos);
         const overwrittenPiece = this.getPiece(newPos);
 
-        if (overwrittenPiece !== undefined) {
+        if (!(movingPiece instanceof Piece)) {
+            throw `Tried to move piece at position ${oldPos}, which isn't a piece!`;
+        }
+
+        if (overwrittenPiece instanceof Piece) {
             this.outPieces.push(overwrittenPiece);
         }
 
-        this.board[oldPos.y][oldPos.x] = null;
-        this.board[newPos.y][newPos.x] = movingPiece;
+        this.setPiece(oldPos, null);
+        this.setPiece(newPos, movingPiece);
 
         movingPiece.onMove(oldPos, newPos);
 

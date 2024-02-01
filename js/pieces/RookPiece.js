@@ -10,7 +10,7 @@ export class RookPiece extends Piece {
     * @param {'black'|'white'} side 
     */
     constructor(side) {
-        super('Pawn', side);
+        super('Rook', side);
     }
 
     /**
