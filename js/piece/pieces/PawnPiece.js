@@ -1,13 +1,19 @@
 
-import { Piece } from '/js/Piece.js';
-import { Vec2 } from '/js/util/Vec2.js';
+import { Piece } from '../Piece.js';
+import { Vec2 } from '../../util/math/Vec2.js';
 
 export class PawnPiece extends Piece {
+
+    /** @type { { [key in Side]: HTMLImageElement|undefined|ErrorEvent } } */
+    static img = {
+        black: undefined,
+        white: undefined
+    };
 
     moved = false;
 
     /**
-    * @param {'black'|'white'} side 
+    * @param {Side} side 
     */
     constructor(side) {
         super('Pawn', side);
@@ -20,6 +26,7 @@ export class PawnPiece extends Piece {
      */
     getAvailableMoves(getPiece, pos) {
 
+        /** @type {Array<Vec2>} */
         const moves = [];
         
         const dir = this.getDir();

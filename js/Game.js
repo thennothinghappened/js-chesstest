@@ -1,11 +1,10 @@
 
-import { Vec2 } from '/js/util/Vec2.js';
-import { Piece } from '/js/Piece.js';
-import { PawnPiece } from '/js/pieces/PawnPiece.js';
-import { RookPiece } from '/js/pieces/RookPiece.js';
-import { BishopPiece } from '/js/pieces/BishopPiece.js';
-
-/** @typedef {'init'|'none'|'piece_selected'} GameState */
+import { Vec2 } from './util/math/Vec2.js';
+import { Piece } from './piece/Piece.js';
+import { PawnPiece } from './piece/pieces/PawnPiece.js';
+import { RookPiece } from './piece/pieces/RookPiece.js';
+import { BishopPiece } from './piece/pieces/BishopPiece.js';
+import { pieceList } from '/js/piece/pieceList.js';
 
 /**
  * @typedef GameStateHandler
@@ -25,6 +24,9 @@ export class Game {
 
     /** @type {GameState} */
     gameState = 'init';
+
+    /** @type {Side} */
+    turn = 'white';
 
     mouseX = 0;
     mouseY = 0;
@@ -75,6 +77,10 @@ export class Game {
                     return 'none';
                 }
 
+                if (mouseBoardPiece.side !== this.turn) {
+                    return 'none';
+                }
+
                 this.selectedPiecePos = mouseBoardPos;
 
                 return 'piece_selected';
@@ -118,6 +124,8 @@ export class Game {
                 }
 
                 this.movePiece(this.selectedPiecePos, move);
+                this.switchTurn();
+
                 return 'none';
 
             },
@@ -171,7 +179,14 @@ export class Game {
         this.columns = 8;
 
         this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
+        
+        const ctx = this.canvas.getContext('2d');
+
+        if (ctx === null) {
+            throw 'Failed to acquire 2D context!';
+        }
+
+        this.ctx = ctx;
 
         document.body.appendChild(this.canvas);
         this.canvas.width = 512;
@@ -188,6 +203,20 @@ export class Game {
         this.canvas.addEventListener('mousedown', this.onMouseDown);
         this.canvas.addEventListener('mouseup', this.onMouseUp);
         this.canvas.addEventListener('mousemove', this.onMouseMove);
+
+        /** @type { { [key in Side]: HTMLImageElement } } */
+        this.fallbackImgs = {
+            black: new Image(),
+            white: new Image()
+        };
+
+        this.fallbackImgs.black.src = Piece.getImageFilename(new Piece('Fallback', 'black'));
+        this.fallbackImgs.white.src = Piece.getImageFilename(new Piece('Fallback', 'white'));
+
+        pieceList.forEach(PieceType => {
+            PieceType.loadImage(new PieceType('black'));
+            PieceType.loadImage(new PieceType('white'));
+        });
 
         this.stateHandlers[this.gameState].enter();
 
@@ -214,6 +243,19 @@ export class Game {
 
         requestAnimationFrame(this.update);
 
+    }
+
+    /**
+     * Switch which player's turn it is!
+     */
+    switchTurn() {
+        if (this.turn === 'black') {
+
+            this.turn = 'white';
+            return;
+        }
+
+        this.turn = 'black';
     }
 
     /**
@@ -261,6 +303,8 @@ export class Game {
         const lightColour = '#afacab';
         const darkColour = '#5f5c5b';
 
+        this.ctx.imageSmoothingEnabled = false;
+
         this.board.forEach((row, rowIndex) => {
 
             const startY = rowIndex * this.drawnBoxHeight;
@@ -278,8 +322,13 @@ export class Game {
                     return;
                 }
 
-                this.ctx.fillStyle = (piece.side === 'black') ? '#000000' : '#ffffff';
-                this.ctx.fillText(`${piece}`, startX, endY);
+                let img = piece.constructor.img[piece.side];
+                
+                if (!(img instanceof HTMLImageElement)) {
+                    img = this.fallbackImgs[piece.side];
+                }
+
+                this.ctx.drawImage(img, startX, startY, this.drawnBoxWidth, this.drawnBoxHeight);
 
             });
 

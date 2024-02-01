@@ -1,11 +1,17 @@
 
-import { Piece } from '/js/Piece.js';
-import { Vec2 } from '/js/util/Vec2.js';
+import { Piece } from '../Piece.js';
+import { Vec2 } from '../../util/math/Vec2.js';
 
 export class BishopPiece extends Piece {
 
+    /** @type { { [key in Side]: HTMLImageElement|undefined|ErrorEvent } } */
+    static img = {
+        black: undefined,
+        white: undefined
+    };
+
     /**
-    * @param {'black'|'white'} side 
+    * @param {Side} side 
     */
     constructor(side) {
         super('Bishop', side);
@@ -18,6 +24,7 @@ export class BishopPiece extends Piece {
      */
     getAvailableMoves(getPiece, pos) {
 
+        /** @type {Array<Vec2>} */
         const moves = [];
         const dirs = [new Vec2(-1, -1), new Vec2(1, -1), new Vec2(1, 1), new Vec2(-1, 1)];
 
