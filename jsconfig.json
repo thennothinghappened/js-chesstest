@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "checkJs": true,
+        "module": "ESNext",
+        "strict": true,
+        "target": "ESNext",
+        "paths": {
+            "/js/*": ["./js/*"]
+        }
+    }
+}
