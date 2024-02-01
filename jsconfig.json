@@ -1,8 +1,0 @@
-{
-    "compilerOptions": {
-        "allowJs": true,
-        "checkJs": true,
-        "module": "ESNext",
-        "strict": true
-    }
-}
