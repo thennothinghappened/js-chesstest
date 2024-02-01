@@ -3,7 +3,7 @@ import { Vec2 } from '/js/util/Vec2.js';
 import { Piece } from '/js/Piece.js';
 import { PawnPiece } from '/js/pieces/PawnPiece.js';
 import { RookPiece } from '/js/pieces/RookPiece.js';
-
+import { BishopPiece } from '/js/pieces/BishopPiece.js';
 
 /** @typedef {'init'|'none'|'piece_selected'} GameState */
 
@@ -44,7 +44,8 @@ export class Game {
                 this.board[1] = this.board[1].map(() => new PawnPiece('black'));
                 this.board[6] = this.board[6].map(() => new PawnPiece('white'));
                 
-                this.board[0] = [new RookPiece('black'), null, null, null, null, null, null, new RookPiece('black')];
+                this.board[0] = [new RookPiece('black'), null, new BishopPiece('black'), null, null, new BishopPiece('black'), null, new RookPiece('black')];
+                this.board[7] = [new RookPiece('white'), null, new BishopPiece('white'), null, null, new BishopPiece('white'), null, new RookPiece('white')];
 
             },
             update: () => {
@@ -125,7 +126,7 @@ export class Game {
             },
             draw: () => {
 
-                const selectedColour = 'rgba(225, 140, 130, 0.6)';
+                const selectedColour = 'rgba(225, 140, 190, 0.6)';
                 const movePosColour = 'rgba(180, 250, 180, 0.6)';
 
                 if (this.selectedPiecePos === null) {
