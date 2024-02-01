@@ -6,6 +6,7 @@ import { RookPiece } from './piece/pieces/RookPiece.js';
 import { BishopPiece } from './piece/pieces/BishopPiece.js';
 import { pieceList } from '/js/piece/pieceList.js';
 import { KnightPiece } from '/js/piece/pieces/KnightPiece.js';
+import { QueenPiece } from './piece/pieces/QueenPiece.js';
 
 /**
  * @typedef GameStateHandler
@@ -47,8 +48,8 @@ export class Game {
                 this.board[1] = this.board[1].map(() => new PawnPiece('black'));
                 this.board[6] = this.board[6].map(() => new PawnPiece('white'));
                 
-                this.board[0] = [new RookPiece('black'), new KnightPiece('black'), new BishopPiece('black'), null, null, new BishopPiece('black'), new KnightPiece('black'), new RookPiece('black')];
-                this.board[7] = [new RookPiece('white'), new KnightPiece('white'), new BishopPiece('white'), null, null, new BishopPiece('white'), new KnightPiece('white'), new RookPiece('white')];
+                this.board[0] = [new RookPiece('black'), new KnightPiece('black'), new BishopPiece('black'), null, new QueenPiece('black'), new BishopPiece('black'), new KnightPiece('black'), new RookPiece('black')];
+                this.board[7] = [new RookPiece('white'), new KnightPiece('white'), new BishopPiece('white'), null, new QueenPiece('white'), new BishopPiece('white'), new KnightPiece('white'), new RookPiece('white')];
 
             },
             update: () => {
