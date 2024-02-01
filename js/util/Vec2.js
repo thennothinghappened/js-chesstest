@@ -17,6 +17,20 @@ export class Vec2 {
         return other.x === this.x && other.y === this.y;
     }
 
+    /**
+    * @param {Vec2} other 
+    */
+    plus(other) {
+        return new Vec2(this.x + other.x, this.y + other.y);
+    }
+
+    /**
+    * @param {Vec2} other 
+    */
+    multiply(other) {
+        return new Vec2(this.x * other.x, this.y * other.y);
+    }
+
     toString() {
         return `${this.constructor.name}(x=${this.x}, y=${this.y})`;
     }

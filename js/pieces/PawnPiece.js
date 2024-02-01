@@ -14,45 +14,44 @@ export class PawnPiece extends Piece {
     }
 
     /**
-     * @param {(pos: Vec2) => Piece|undefined} getPiece
-     * @param {Number} x
-     * @param {Number} y 
+     * @param {(pos: Vec2) => Piece|null|undefined} getPiece
+     * @param {Vec2} pos
      * @returns {Array<Vec2>}
      */
-    getAvailableMoves(getPiece, x, y) {
+    getAvailableMoves(getPiece, pos) {
 
         const moves = [];
         
         const dir = this.getDir();
 
-        const ahead = new Vec2(x, y + dir);
+        const ahead = new Vec2(pos.x, pos.y + dir);
 
-        if (getPiece(ahead) === undefined) {
+        if (getPiece(ahead) === null) {
             moves.push(ahead);
-        }
 
-        // First turn can move two spaces.
-        if (!this.moved) {
-            
-            const doubleAhead = new Vec2(x, y + dir * 2);
+            // First turn can move two spaces.
+            if (!this.moved) {
 
-            if (getPiece(doubleAhead) === undefined) {
-                moves.push(doubleAhead);
+                const doubleAhead = new Vec2(pos.x, pos.y + dir * 2);
+
+                if (getPiece(doubleAhead) === null) {
+                    moves.push(doubleAhead);
+                }
+
             }
-
         }
 
-        const leftAhead = new Vec2(x - 1, y + dir);
+        const leftAhead = new Vec2(pos.x - 1, pos.y + dir);
         const leftAheadPiece = getPiece(leftAhead);
-        
-        if (leftAheadPiece !== undefined && leftAheadPiece.side !== this.side) {
+
+        if (leftAheadPiece != null && leftAheadPiece.side !== this.side) {
             moves.push(leftAhead);
         }
 
-        const rightAhead = new Vec2(x + 1, y + dir);
+        const rightAhead = new Vec2(pos.x + 1, pos.y + dir);
         const rightAheadPiece = getPiece(rightAhead);
-        
-        if (rightAheadPiece !== undefined && rightAheadPiece.side !== this.side) {
+
+        if (rightAheadPiece != null && rightAheadPiece.side !== this.side) {
             moves.push(rightAhead);
         }
 
@@ -69,12 +68,10 @@ export class PawnPiece extends Piece {
 
     /**
      * Handler for anything special to do once we've moved (ie, change our state.)
-     * @param {Number} oldX 
-     * @param {Number} oldY 
-     * @param {Number} x 
-     * @param {Number} y 
+     * @param {Vec2} oldPos
+     * @param {Vec2} newPos
      */
-    onMove(oldX, oldY, x, y) {
+    onMove(oldPos, newPos) {
         this.moved = true;
     }
 

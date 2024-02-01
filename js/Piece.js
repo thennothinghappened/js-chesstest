@@ -13,23 +13,20 @@ export class Piece {
     }
 
     /**
-     * @param {(pos: Vec2) => Piece|undefined} getPiece
-     * @param {Number} x
-     * @param {Number} y 
+     * @param {(pos: Vec2) => Piece|null|undefined} getPiece
+     * @param {Vec2} pos
      * @returns {Array<Vec2>}
      */
-    getAvailableMoves(board, x, y) {
+    getAvailableMoves(board, pos) {
         return [];
     }
 
     /**
      * Handler for anything special to do once we've moved (ie, change our state.)
-     * @param {Number} oldX 
-     * @param {Number} oldY 
-     * @param {Number} x 
-     * @param {Number} y 
+     * @param {Vec2} oldPos
+     * @param {Vec2} newPos
      */
-    onMove(oldX, oldY, x, y) {
+    onMove(oldPos, newPos) {
         return;
     }
 

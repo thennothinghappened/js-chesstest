@@ -2,6 +2,7 @@
 import { Vec2 } from '/js/util/Vec2.js';
 import { Piece } from '/js/Piece.js';
 import { PawnPiece } from '/js/pieces/PawnPiece.js';
+import { RookPiece } from '/js/pieces/RookPiece.js';
 
 
 /** @typedef {'none'|'piece_selected'} GameState */
@@ -13,9 +14,6 @@ export class Game {
 
     /** @type {Vec2|undefined} */
     selectedBoardPos = undefined;
-
-    /** @type {Array<Vec2>|undefined} */
-    currentPieceMoves = undefined;
 
     constructor() {
 
@@ -32,7 +30,7 @@ export class Game {
         /** @type {Array<Array<Piece|undefined>>} */
         this.board = Array(this.rows)
             .fill(undefined)
-            .map(_ => Array(this.columns).fill(undefined));
+            .map(_ => Array(this.columns).fill(null));
 
         /** @type {Array<Piece>} */
         this.outPieces = [];
@@ -45,6 +43,8 @@ export class Game {
 
         this.board[1] = this.board[1].map(_ => new PawnPiece('black'));
         this.board[6] = this.board[6].map(_ => new PawnPiece('white'));
+        
+        this.board[0] = [new RookPiece('black'), null, null, null, null, null, null, new RookPiece('black')];
 
     }
 
@@ -59,25 +59,26 @@ export class Game {
         switch (this.gameState) {
 
             case 'none': {
-                
 
-                if (mouseBoardPiece === undefined) {
-                    this.selectedBoardPos = undefined;
-                    this.currentPieceMoves = undefined;
-                    return;
+                this.setSelectedBoardPos(mouseBoardPos);
+
+                if (mouseBoardPiece !== null) {
+                    this.onStateChange('piece_selected');
                 }
-
-                this.selectedBoardPos = mouseBoardPos;
-                this.currentPieceMoves = mouseBoardPiece.getAvailableMoves(this.getPiece.bind(this), mouseBoardPos.x, mouseBoardPos.y);
-
-                this.onStateChange('piece_selected');
 
                 return;
             }
 
             case 'piece_selected': {
 
-                const move = this.currentPieceMoves.find((m) => mouseBoardPos.equals(m));
+                const selectedPiece = this.getSelectedPiece();
+
+                if (selectedPiece === null) {
+                    throw `Expected to find piece at ${this.selectedBoardPos}, found none!`;
+                }
+
+                const moves = selectedPiece.getAvailableMoves(this.getPiece.bind(this), this.selectedBoardPos);
+                const move = moves.find((m) => mouseBoardPos.equals(m));
 
                 if (move === undefined) {
                     this.onStateChange('none');
@@ -89,8 +90,6 @@ export class Game {
 
                 return;
             }
-
-
 
         }
 
@@ -110,8 +109,7 @@ export class Game {
 
             case 'piece_selected': {
 
-                this.selectedBoardPos = undefined;
-                this.currentPieceMoves = undefined;
+                this.setSelectedBoardPos(undefined);
 
                 break;
 
@@ -137,7 +135,6 @@ export class Game {
         }
 
         this.gameState = newState;
-
         this.draw();
     }
 
@@ -166,7 +163,7 @@ export class Game {
                 this.ctx.fillStyle = ((colIndex + rowIndex) % 2 === 0) ? lightColour : darkColour;
                 this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
 
-                if (piece === undefined) {
+                if (piece === null) {
                     return;
                 }
 
@@ -177,7 +174,9 @@ export class Game {
 
         });
 
-        if (this.selectedBoardPos !== undefined) {
+        const selectedPiece = this.getSelectedPiece();
+
+        if (selectedPiece !== null) {
 
             const startX = this.selectedBoardPos.x * boxWidth;
             const startY = this.selectedBoardPos.y * boxHeight;
@@ -185,29 +184,28 @@ export class Game {
             this.ctx.fillStyle = selectedColour;
             this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
 
-        }
-
-        if (this.currentPieceMoves !== undefined) {
+            const moves = selectedPiece.getAvailableMoves(this.getPiece.bind(this), this.selectedBoardPos);
 
             this.ctx.fillStyle = movePosColour;
-            
-            this.currentPieceMoves.forEach((pos) => {
+
+            moves.forEach((pos) => {
 
                 const startX = pos.x * boxWidth;
                 const startY = pos.y * boxHeight;
-                
+
                 this.ctx.fillRect(startX, startY, boxWidth, boxHeight);
 
             });
+
         }
 
     }
 
     /**
      * @param {Vec2} pos
-     * @returns {Piece|undefined}
+     * @returns {Piece|null|undefined}
      */
-    getPiece(pos) {
+    getPiece = function(pos) {
 
         if (pos.x < 0 || pos.y < 0 || pos.x >= this.columns || pos.y >= this.rows) {
             return undefined;
@@ -215,6 +213,22 @@ export class Game {
 
         return this.board[pos.y][pos.x];
 
+    }
+
+    getSelectedPiece() {
+
+        if (this.selectedBoardPos === undefined) {
+            return null;
+        }
+
+        return this.getPiece(this.selectedBoardPos);
+    }
+
+    /**
+     * @param {Vec2|undefined} pos 
+     */
+    setSelectedBoardPos(pos) {
+        this.selectedBoardPos = pos;
     }
 
     /**
@@ -234,18 +248,14 @@ export class Game {
         const movingPiece = this.getPiece(oldPos);
         const overwrittenPiece = this.getPiece(newPos);
 
-        console.log(movingPiece);
-
         if (overwrittenPiece !== undefined) {
             this.outPieces.push(overwrittenPiece);
         }
 
-        this.board[oldPos.y][oldPos.x] = undefined;
+        this.board[oldPos.y][oldPos.x] = null;
         this.board[newPos.y][newPos.x] = movingPiece;
 
-        movingPiece.onMove(oldPos.x, oldPos.y, newPos.x, newPos.y);
-
-        console.log(this.board[oldPos.y]);
+        movingPiece.onMove(oldPos, newPos);
 
     }
 

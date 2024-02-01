@@ -8,14 +8,6 @@ function init() {
     game.setupBoard();
     game.draw();
 
-    const coord = game.canvasCoordToGrid(512 / 8 * 2, 512 / 8 * 1);
-    const piece = game.getPiece(coord);
-
-    console.log(piece.toString());
-
-    if (piece !== undefined) {
-        console.log(piece.getAvailableMoves(game.getPiece.bind(game), coord.x, coord.y))
-    }
 }
 
 if (document.readyState === 'complete') {
