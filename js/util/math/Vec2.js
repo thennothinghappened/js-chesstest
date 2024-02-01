@@ -24,18 +24,24 @@ export class Vec2 {
 
     /**
      * Add another Vec2 to this one, returning a new vector.
-     * @param {Vec2} other 
+     * @param {Vec2|Number} other 
      */
     plus(other) {
-        return new Vec2(this.x + other.x, this.y + other.y);
+        if (other instanceof Vec2) {
+            return new Vec2(this.x + other.x, this.y + other.y);
+        }
+        return new Vec2(this.x + other, this.y + other);
     }
 
     /**
      * Multiply another Vec2 with this one, returning a new vector.
-     * @param {Vec2} other 
+     * @param {Vec2|Number} other 
      */
     multiply(other) {
-        return new Vec2(this.x * other.x, this.y * other.y);
+        if (other instanceof Vec2) {
+            return new Vec2(this.x * other.x, this.y * other.y);
+        }
+        return new Vec2(this.x * other, this.y * other);
     }
 
     toString() {

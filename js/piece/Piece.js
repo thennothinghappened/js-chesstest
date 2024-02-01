@@ -29,11 +29,13 @@ export class Piece {
 
     /**
      * Handler for anything special to do once we've moved (ie, change our state.)
+     * @param {(pos: Vec2) => Piece|null|undefined} getPiece
+     * @param {(pos: Vec2, piece: Piece|null) => void} setPiece
      * @param {Vec2} oldPos
      * @param {Vec2} newPos
      */
-    onMove(oldPos, newPos) {
-        return;
+    onMove(getPiece, setPiece, oldPos, newPos) {
+        return;        
     }
 
     /**

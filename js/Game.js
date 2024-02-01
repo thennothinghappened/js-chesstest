@@ -402,7 +402,7 @@ export class Game {
         this.setPiece(oldPos, null);
         this.setPiece(newPos, movingPiece);
 
-        movingPiece.onMove(oldPos, newPos);
+        movingPiece.onMove(this.getPiece, this.setPiece, oldPos, newPos);
 
     }
 
